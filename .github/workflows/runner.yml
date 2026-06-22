@@ -59,18 +59,51 @@ jobs:
           rm -rf "${{ inputs.output_path }}"
           mkdir -p "${{ inputs.output_path }}"
 
+      - name: Collect input files
+        id: files
+        shell: bash
+        run: |
+          INPUT="${{ inputs.input_path }}"
+          if [ -d "$INPUT" ]; then
+            mapfile -t FILES < <(find "$INPUT" -type f | sort)
+          elif [ -f "$INPUT" ]; then
+            FILES=("$INPUT")
+          else
+            echo "Input tidak ditemukan: $INPUT"
+            exit 1
+          fi
+
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "Tidak ada file input"
+            exit 1
+          fi
+
+          printf '%s\n' "${FILES[@]}" > files.txt
+          echo "count=${#FILES[@]}" >> "$GITHUB_OUTPUT"
+
       - name: Run tool
         shell: bash
         run: |
+          mapfile -t FILES < files.txt
+
           case "${{ inputs.mode }}" in
             unpack)
-              java -jar "${{ steps.jar.outputs.jar_path }}" -u -s -i --raw --sort-variants --data "${{ inputs.input_path }}" -o "${{ inputs.output_path }}"
+              java -jar "${{ steps.jar.outputs.jar_path }}" \
+                -u -s -i --raw --sort-variants \
+                -o "${{ inputs.output_path }}" \
+                "${FILES[@]}"
               ;;
             repack)
-              java -jar "${{ steps.jar.outputs.jar_path }}" -r "${{ inputs.input_path }}" -o "${{ inputs.output_path }}"
+              java -jar "${{ steps.jar.outputs.jar_path }}" \
+                -r \
+                -o "${{ inputs.output_path }}" \
+                "${FILES[@]}"
               ;;
             compile)
-              java -jar "${{ steps.jar.outputs.jar_path }}" -c "${{ inputs.input_path }}" -o "${{ inputs.output_path }}"
+              java -jar "${{ steps.jar.outputs.jar_path }}" \
+                -c \
+                -o "${{ inputs.output_path }}" \
+                "${FILES[@]}"
               ;;
             *)
               echo "Mode tidak valid"

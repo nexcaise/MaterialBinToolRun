@@ -1,0 +1,35 @@
+plugins {
+    id 'java'
+    id 'com.github.johnrengelman.shadow' version '6.0.0'
+}
+
+group 'com.ddf.materialbintool'
+version '0.9.1'
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+repositories {
+    maven {
+        name 'aliyun-central'
+        url 'https://maven.aliyun.com/repository/central'
+    }
+    maven {
+        name 'aliyun-public'
+        url 'https://maven.aliyun.com/repository/public'
+    }
+}
+
+dependencies {
+    implementation project(":bouncycastle")
+    implementation project(":jcpp")
+
+    implementation 'com.google.code.gson:gson:2.9.1'
+    implementation 'com.beust:jcommander:1.82'
+}
+
+shadowJar {
+    manifest {
+        attributes 'Main-Class': 'com.ddf.materialbintool.main.Main'
+    }
+}

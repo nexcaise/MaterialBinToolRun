@@ -1,0 +1,87 @@
+name: MaterialBinTool
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Mode menjalankan tool"
+        required: true
+        default: "unpack"
+        type: choice
+        options:
+          - unpack
+          - repack
+          - compile
+      input_path:
+        description: "File atau folder input"
+        required: true
+        default: "input"
+      output_path:
+        description: "Folder output"
+        required: true
+        default: "output"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Java 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "8"
+          cache: gradle
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Build MaterialBinTool
+        run: ./gradlew shadowJar --no-daemon
+
+      - name: Find built jar
+        id: jar
+        shell: bash
+        run: |
+          JAR_PATH="$(find build/libs -maxdepth 1 -type f -name "*all.jar" | head -n 1)"
+          if [ -z "$JAR_PATH" ]; then
+            echo "Jar hasil build tidak ditemukan"
+            exit 1
+          fi
+          echo "jar_path=$JAR_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare output folder
+        shell: bash
+        run: |
+          rm -rf "${{ inputs.output_path }}"
+          mkdir -p "${{ inputs.output_path }}"
+
+      - name: Run tool
+        shell: bash
+        run: |
+          case "${{ inputs.mode }}" in
+            unpack)
+              java -jar "${{ steps.jar.outputs.jar_path }}" -u "${{ inputs.input_path }}" -o "${{ inputs.output_path }}"
+              ;;
+            repack)
+              java -jar "${{ steps.jar.outputs.jar_path }}" -r "${{ inputs.input_path }}" -o "${{ inputs.output_path }}"
+              ;;
+            compile)
+              java -jar "${{ steps.jar.outputs.jar_path }}" -c "${{ inputs.input_path }}" -o "${{ inputs.output_path }}"
+              ;;
+            *)
+              echo "Mode tidak valid"
+              exit 1
+              ;;
+          esac
+
+      - name: Upload artifact hasil
+        uses: actions/upload-artifact@v4
+        with:
+          name: materialbintool-output-${{ github.run_number }}
+          path: ${{ inputs.output_path }}
+          if-no-files-found: error
+          retention-days: 7

@@ -64,7 +64,7 @@ jobs:
         run: |
           case "${{ inputs.mode }}" in
             unpack)
-              java -jar "${{ steps.jar.outputs.jar_path }}" -u "${{ inputs.input_path }}" -o "${{ inputs.output_path }}"
+              java -jar "${{ steps.jar.outputs.jar_path }}" -u -s -i --raw --sort-variants --data "${{ inputs.input_path }}" -o "${{ inputs.output_path }}"
               ;;
             repack)
               java -jar "${{ steps.jar.outputs.jar_path }}" -r "${{ inputs.input_path }}" -o "${{ inputs.output_path }}"
